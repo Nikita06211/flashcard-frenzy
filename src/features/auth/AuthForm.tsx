@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function AuthForm() {
@@ -10,6 +11,33 @@ export default function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const router = useRouter();
+
+  // Listen for auth state changes and redirect when user is authenticated
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session?.user?.email);
+      if (event === 'SIGNED_IN' && session && shouldRedirect) {
+        console.log('Redirecting to lobby via auth state change...');
+        router.push('/lobby');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [shouldRedirect, router]);
+
+  // Fallback redirect mechanism
+  useEffect(() => {
+    if (shouldRedirect) {
+      const timer = setTimeout(() => {
+        console.log('Fallback redirect to lobby...');
+        router.push('/lobby');
+      }, 3000); // 3 second fallback
+
+      return () => clearTimeout(timer);
+    }
+  }, [shouldRedirect, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +49,16 @@ export default function AuthForm() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        
+        // Show success message and set flag for redirect
+        setSuccess("Login successful! Redirecting to lobby...");
+        setShouldRedirect(true);
+        
+        // Wait a moment for auth state to update, then redirect
+        setTimeout(() => {
+          console.log('Attempting redirect after auth state update...');
+          router.push('/lobby');
+        }, 1000);
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
@@ -133,6 +171,18 @@ export default function AuthForm() {
             </button>
           </p>
         </div>
+
+        {/* Debug: Manual redirect button */}
+        {success && success.includes("Login successful") && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => router.push('/lobby')}
+              className="text-blue-600 dark:text-blue-400 hover:underline text-sm bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded"
+            >
+              Click here if redirect doesn't work automatically
+            </button>
+          </div>
+        )}
 
       </div>
     </div>
