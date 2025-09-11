@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Flashcard from "./Flashcard";
 import Scoreboard from "./Scoreboard";
+import ScreenReaderAnnouncements from "@/components/ScreenReaderAnnouncements";
+import AlternativeAnnouncements from "@/components/AlternativeAnnouncements";
 import { MOCK_QUESTIONS, Question, TOTAL_QUESTIONS, MAX_SCORE } from "@/data/questions";
 import { useSocket } from "@/hooks/useSocket";
 
@@ -11,11 +13,6 @@ interface GameProps {
   userId: string;
 }
 
-interface GameMessage {
-  userId: string;
-  message: string;
-  timestamp: number;
-}
 
 interface PlayerScore {
   [userId: string]: {
@@ -26,13 +23,30 @@ interface PlayerScore {
 }
 
 export default function Game({ matchId, userId }: GameProps) {
-  const [messages, setMessages] = useState<GameMessage[]>([]);
   const [scores, setScores] = useState<PlayerScore>({});
   const [announcement, setAnnouncement] = useState("");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
   const [playerNames, setPlayerNames] = useState<{ [userId: string]: string }>({});
+  const [timeLeft, setTimeLeft] = useState(25);
+  const [criticalAlert, setCriticalAlert] = useState("");
+  
+  // Function to create accessible announcements
+  const createAnnouncement = (message: string, priority: 'polite' | 'assertive' = 'polite') => {
+    if (priority === 'assertive') {
+      setCriticalAlert(message);
+    } else {
+      setAnnouncement(message);
+    }
+  };
+  
+  // Effect to handle critical time warnings
+  useEffect(() => {
+    if (timeLeft <= 5 && timeLeft > 0 && !gameCompleted) {
+      createAnnouncement(`Warning! Only ${timeLeft} seconds remaining!`, 'assertive');
+    }
+  }, [timeLeft, gameCompleted]);
   
   // Use unified socket
   const { socket, connected, joinMatch, sendAnswer: socketSendAnswer, leaveMatch, cleanupMatches } = useSocket(
@@ -42,11 +56,12 @@ export default function Game({ matchId, userId }: GameProps) {
 
   useEffect(() => {
     if (socket && connected) {
-      console.log('🎮 Joining match room:', matchId);
       joinMatch(matchId);
       
-      // Initialize current user's score
+      // Initialize current user's score if not already present
       setScores(prev => {
+        if (prev[userId]) return prev; // Already initialized
+        
         const currentUserName = `Player ${userId.slice(0, 8)}`;
         return {
           ...prev,
@@ -57,6 +72,9 @@ export default function Game({ matchId, userId }: GameProps) {
           }
         };
       });
+      
+      // Announce game start
+      createAnnouncement(`Welcome to Flashcard Frenzy! Question 1 of ${TOTAL_QUESTIONS}. You have 25 seconds to answer each question.`);
     }
   }, [socket, connected, matchId, joinMatch, userId]);
 
@@ -64,7 +82,6 @@ export default function Game({ matchId, userId }: GameProps) {
   useEffect(() => {
     return () => {
       if (socket && connected) {
-        console.log('🧹 Cleaning up match on unmount');
         leaveMatch(matchId);
         cleanupMatches();
       }
@@ -75,14 +92,8 @@ export default function Game({ matchId, userId }: GameProps) {
     if (!socket) return;
 
     const handlePlayerJoined = ({ userId: joinedUserId, matchId: roomId }: any) => {
-      console.log(`👤 Player ${joinedUserId} joined match ${roomId}`);
-      const newMessage = {
-        userId: joinedUserId,
-        message: 'joined the match',
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, newMessage]);
-      setAnnouncement(`Player ${joinedUserId} joined the match`);
+      const playerName = `Player ${joinedUserId.slice(0, 8)}`;
+      createAnnouncement(`${playerName} has joined the match. Game can now begin.`);
       
       // Initialize score for the joined player
       setScores(prev => {
@@ -92,19 +103,6 @@ export default function Game({ matchId, userId }: GameProps) {
           [joinedUserId]: {
             score: 0,
             name: playerName,
-            answers: {}
-          }
-        };
-      });
-      
-      // Also initialize score for current user if not already present
-      setScores(prev => {
-        const currentUserName = `Player ${userId.slice(0, 8)}`;
-        return {
-          ...prev,
-          [userId]: {
-            score: 0,
-            name: currentUserName,
             answers: {}
           }
         };
@@ -121,12 +119,6 @@ export default function Game({ matchId, userId }: GameProps) {
       
       console.log(`📝 Answer correct: ${isCorrect}`);
       
-      const newMessage = {
-        userId: answerUserId,
-        message: `answered: ${answer} ${isCorrect ? '✓' : '✗'}`,
-        timestamp
-      };
-      setMessages(prev => [...prev, newMessage]);
 
       // Update scores with proper logic
       setScores(prev => {
@@ -160,9 +152,9 @@ export default function Game({ matchId, userId }: GameProps) {
           
           // Announce score update for accessibility
           if (isCorrect) {
-            setAnnouncement(`${playerName} answered correctly! +${currentQuestion.points} points. New score: ${newScore}`);
+            createAnnouncement(`${playerName} answered correctly! +${currentQuestion.points} points. New score: ${newScore}`);
           } else {
-            setAnnouncement(`${playerName} answered incorrectly. Score remains: ${currentPlayerScore.score}`);
+            createAnnouncement(`${playerName} answered incorrectly. Score remains: ${currentPlayerScore.score}`);
           }
           
           return newScores;
@@ -179,7 +171,7 @@ export default function Game({ matchId, userId }: GameProps) {
             }
           };
           
-          setAnnouncement(`${playerName} ran out of time. No points awarded.`);
+          createAnnouncement(`${playerName} ran out of time. No points awarded.`);
           return newScores;
         }
         
@@ -217,12 +209,13 @@ export default function Game({ matchId, userId }: GameProps) {
   const nextQuestion = () => {
     if (currentQuestionIndex < MOCK_QUESTIONS.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
-      setAnnouncement(`Question ${currentQuestionIndex + 2} of ${TOTAL_QUESTIONS}`);
+      setTimeLeft(25); // Reset timer for new question
+      createAnnouncement(`Question ${currentQuestionIndex + 2} of ${TOTAL_QUESTIONS}. You have 25 seconds to answer.`);
     } else {
       // Game completed
       setGameCompleted(true);
       determineWinner();
-      setAnnouncement("Quiz completed! Final scores are in.");
+      createAnnouncement("Quiz completed! Final scores are in. Check the results below.", 'assertive');
     }
   };
 
@@ -244,8 +237,8 @@ export default function Game({ matchId, userId }: GameProps) {
     setGameCompleted(false);
     setWinner(null);
     setScores({});
-    setMessages([]);
-    setAnnouncement("New game started!");
+    setTimeLeft(25);
+    createAnnouncement("New game started! Question 1 of 4. You have 25 seconds to answer.");
   };
 
   return (
@@ -260,9 +253,10 @@ export default function Game({ matchId, userId }: GameProps) {
                 cleanupMatches();
                 window.location.href = '/lobby';
               }}
+              aria-label="Exit current match and return to lobby"
               className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
               <span>Exit Match</span>
@@ -272,18 +266,21 @@ export default function Game({ matchId, userId }: GameProps) {
           </h1>
             <div></div> {/* Spacer for centering */}
           </div>
-          <div className="flex items-center justify-center space-x-4 mb-4">
-            <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <div className="flex items-center justify-center space-x-4 mb-4" role="status" aria-live="polite">
+            <div 
+              className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
+              aria-label={`Connection status: ${connected ? 'Connected' : 'Disconnected'}`}
+            ></div>
             <span className="text-gray-600 dark:text-gray-400">
               {connected ? 'Connected' : 'Disconnected'}
             </span>
-            <span className="text-gray-400">•</span>
+            <span className="text-gray-400" aria-hidden="true">•</span>
             <span className="text-gray-600 dark:text-gray-400">Match: {matchId}</span>
           </div>
           
           {/* Game Progress */}
           {!gameCompleted && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg max-w-md mx-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg max-w-md mx-auto" role="progressbar" aria-valuenow={currentQuestionIndex + 1} aria-valuemin={1} aria-valuemax={TOTAL_QUESTIONS} aria-label={`Question ${currentQuestionIndex + 1} of ${TOTAL_QUESTIONS}`}>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Question {currentQuestionIndex + 1} of {TOTAL_QUESTIONS}
@@ -292,7 +289,7 @@ export default function Game({ matchId, userId }: GameProps) {
                   {MOCK_QUESTIONS[currentQuestionIndex]?.points} points
                 </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2" aria-hidden="true">
                 <div 
                   className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100}%` }}
@@ -315,6 +312,7 @@ export default function Game({ matchId, userId }: GameProps) {
                 showNextButton={true}
                 timeLimit={25}
                 onTimeUp={nextQuestion}
+                onTimeUpdate={setTimeLeft}
               />
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
@@ -329,15 +327,9 @@ export default function Game({ matchId, userId }: GameProps) {
                 </div>
                 
                 {/* Final Scores */}
-                <div className="mb-6">
+                  <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Final Results</h3>
                   
-                  {/* Debug info */}
-                  <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded text-xs">
-                    <div>Debug: Current User ID: {userId}</div>
-                    <div>Debug: Scores Object: {JSON.stringify(scores, null, 2)}</div>
-                    <div>Debug: Winner: {winner}</div>
-                  </div>
                   
                   <div className="space-y-4">
                     {Object.entries(scores)
@@ -411,6 +403,7 @@ export default function Game({ matchId, userId }: GameProps) {
                 <div className="flex space-x-4 justify-center">
                 <button
                   onClick={resetGame}
+                  aria-label="Start a new game with the same players"
                   className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                 >
                   Play Again
@@ -421,6 +414,7 @@ export default function Game({ matchId, userId }: GameProps) {
                       cleanupMatches();
                       window.location.href = '/lobby';
                     }}
+                    aria-label="Leave current match and return to lobby"
                     className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                   >
                     Back to Lobby
@@ -428,75 +422,25 @@ export default function Game({ matchId, userId }: GameProps) {
                 </div>
               </div>
             )}
-            
-            {/* Game Messages */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Game Activity
-              </h3>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {messages.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    No activity yet...
-                  </p>
-                ) : (
-                  messages.map((msg, index) => (
-                    <div key={index} className="text-sm">
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
-                        {msg.userId}
-                      </span>
-                      <span className="text-gray-600 dark:text-gray-400 ml-2">
-                        {msg.message}
-                      </span>
-                      <span className="text-gray-400 ml-2 text-xs">
-                        {new Date(msg.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
             <Scoreboard scores={scores} />
-            
-            {/* Match Info */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Match Info
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Match ID:</span>
-                  <span className="font-mono text-gray-900 dark:text-white">{matchId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Your ID:</span>
-                  <span className="font-mono text-gray-900 dark:text-white">{userId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Status:</span>
-                  <span className={`font-medium ${connected ? 'text-green-600' : 'text-red-600'}`}>
-                    {connected ? 'Active' : 'Disconnected'}
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Screen Reader Announcements */}
-        <div 
-          aria-live="polite" 
-          aria-atomic="true"
-          className="sr-only"
-          role="status"
-          aria-label="Game announcements"
-        >
-          {announcement}
-        </div>
+        <ScreenReaderAnnouncements 
+          announcement={announcement}
+          criticalAlert={timeLeft <= 5 && timeLeft > 0 && !gameCompleted ? `${timeLeft} seconds remaining!` : criticalAlert}
+        />
+        
+        {/* Alternative Announcements (Fallback) */}
+        <AlternativeAnnouncements 
+          announcement={announcement}
+          criticalAlert={timeLeft <= 5 && timeLeft > 0 && !gameCompleted ? `${timeLeft} seconds remaining!` : criticalAlert}
+        />
       </div>
     </div>
   );

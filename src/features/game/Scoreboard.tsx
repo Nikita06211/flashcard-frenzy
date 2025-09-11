@@ -21,9 +21,9 @@ export default function Scoreboard({ scores }: ScoreboardProps) {
     }));
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700" role="region" aria-label="Game scoreboard">
       <div className="flex items-center space-x-2 mb-6">
-        <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
         </svg>
         <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -46,10 +46,12 @@ export default function Scoreboard({ scores }: ScoreboardProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" role="list" aria-label="Player rankings">
           {sortedScores.map(({ userId, score, name, rank }) => (
             <div
               key={userId}
+              role="listitem"
+              aria-label={`${name}, rank ${rank}, ${score} points`}
               className={`flex items-center justify-between p-4 rounded-lg transition-all duration-200 ${
                 rank === 1
                   ? 'bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-700'
@@ -72,8 +74,9 @@ export default function Scoreboard({ scores }: ScoreboardProps) {
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
                   }`}
+                  aria-label={`Rank ${rank}`}
                 >
-                  {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                  <span aria-hidden="true">{rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}</span>
                 </div>
 
                 {/* Player Info */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import io, { Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 
@@ -37,9 +37,9 @@ export function useSocket(userId: string, userName: string) {
         socketRef.current = null;
       } else {
         console.log('🔌 Reusing existing connected socket');
-        setSocket(socketRef.current);
+      setSocket(socketRef.current);
         setConnected(true);
-        return;
+      return;
       }
     }
 
@@ -64,7 +64,6 @@ export function useSocket(userId: string, userName: string) {
     });
 
     newSocket.on('connect', () => {
-      console.log('🔌 Socket connected:', newSocket.id, 'to', socketUrl);
       setConnected(true);
       // Join user's personal room for challenges
       newSocket.emit('join-user-room', userId);
@@ -90,7 +89,6 @@ export function useSocket(userId: string, userName: string) {
         });
         
         fallbackSocket.on('connect', () => {
-          console.log('🔌 Fallback socket connected:', fallbackSocket.id);
           setConnected(true);
           fallbackSocket.emit('join-user-room', userId);
           setSocket(fallbackSocket);
@@ -144,7 +142,6 @@ export function useSocket(userId: string, userName: string) {
 
     // Game events
     newSocket.on('player-joined', ({ userId: joinedUserId, matchId: roomId }) => {
-      console.log(`👤 Player ${joinedUserId} joined match ${roomId}`);
     });
 
     newSocket.on('player-answered', ({ userId: answerUserId, answer, questionId, timestamp }) => {
@@ -155,7 +152,6 @@ export function useSocket(userId: string, userName: string) {
     setSocket(newSocket);
 
     return () => {
-      console.log('🔌 Cleaning up socket...');
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -208,33 +204,38 @@ export function useSocket(userId: string, userName: string) {
     setChallenge(null);
   };
 
-  const joinMatch = (matchId: string) => {
+  const joinMatch = useCallback((matchId: string) => {
     if (socket && connected) {
       console.log('🎮 Joining match:', matchId, 'for user:', userId);
       socket.emit('join-match', { matchId, userId });
     }
-  };
+  }, [socket, connected, userId]);
 
-  const sendAnswer = (matchId: string, answer: string, questionId: string) => {
+  const sendAnswer = useCallback((matchId: string, answer: string, questionId: string) => {
     if (socket && connected) {
       console.log('📤 Sending answer:', answer);
+      console.log('📤 Answer data:', { matchId, userId, answer, questionId });
       socket.emit('answer', {
         matchId,
         userId,
         answer,
         questionId
       });
+      console.log('📤 Answer event emitted successfully');
+    } else {
+      console.error('❌ Cannot send answer - socket not connected');
+      console.error('❌ Socket:', socket);
+      console.error('❌ Connected:', connected);
     }
-  };
+  }, [socket, connected, userId]);
 
-  const leaveMatch = (matchId: string) => {
+  const leaveMatch = useCallback((matchId: string) => {
     if (socket && connected) {
-      console.log('🚪 Leaving match:', matchId);
       socket.emit('leave-match', { matchId, userId });
     }
-  };
+  }, [socket, connected, userId]);
 
-  const cleanupMatches = async () => {
+  const cleanupMatches = useCallback(async () => {
     try {
       const response = await fetch('/api/match', {
         method: 'DELETE',
@@ -243,16 +244,12 @@ export function useSocket(userId: string, userName: string) {
       });
       
       const data = await response.json();
-      if (data.success) {
-        console.log('🧹 Cleaned up matches:', data.modifiedCount);
-      }
     } catch (error) {
       console.error('Error cleaning up matches:', error);
     }
-  };
+  }, [userId]);
 
   const forceReconnect = () => {
-    console.log('🔄 Forcing socket reconnection...');
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
@@ -261,7 +258,6 @@ export function useSocket(userId: string, userName: string) {
     setConnected(false);
     
     // Trigger a new connection by updating the effect
-    console.log('🔌 Creating new socket connection...');
     const socketUrl = process.env.NODE_ENV === 'production' 
       ? window.location.origin 
       : window.location.origin;
@@ -278,7 +274,6 @@ export function useSocket(userId: string, userName: string) {
     });
 
     newSocket.on('connect', () => {
-      console.log('🔌 Force reconnected socket:', newSocket.id);
       setConnected(true);
       newSocket.emit('join-user-room', userId);
     });
@@ -306,7 +301,6 @@ export function useSocket(userId: string, userName: string) {
     });
 
     newSocket.on('player-joined', ({ userId: joinedUserId, matchId: roomId }) => {
-      console.log(`👤 Player ${joinedUserId} joined match ${roomId}`);
     });
 
     newSocket.on('player-answered', ({ userId: answerUserId, answer, questionId, timestamp }) => {

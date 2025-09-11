@@ -10,9 +10,10 @@ interface FlashcardProps {
   showNextButton?: boolean;
   timeLimit?: number; // in seconds
   onTimeUp?: () => void; // Callback when timer runs out
+  onTimeUpdate?: (timeLeft: number) => void; // Callback when timer updates
 }
 
-export default function Flashcard({ question, onAnswer, disabled = false, onNextQuestion, showNextButton = false, timeLimit = 25, onTimeUp }: FlashcardProps) {
+export default function Flashcard({ question, onAnswer, disabled = false, onNextQuestion, showNextButton = false, timeLimit = 25, onTimeUp, onTimeUpdate }: FlashcardProps) {
   const [answer, setAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(timeLimit);
@@ -20,9 +21,13 @@ export default function Flashcard({ question, onAnswer, disabled = false, onNext
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Flashcard handleSubmit called:', { answer: answer.trim(), submitted, disabled });
     if (answer.trim() && !submitted && !disabled) {
+      console.log('📝 Calling onAnswer with:', answer.trim());
       onAnswer(answer.trim());
       setSubmitted(true);
+    } else {
+      console.log('📝 Not submitting answer:', { hasAnswer: !!answer.trim(), submitted, disabled });
     }
   };
 
@@ -37,11 +42,17 @@ export default function Flashcard({ question, onAnswer, disabled = false, onNext
   useEffect(() => {
     if (timeLeft > 0 && !submitted && !disabled) {
       const timer = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
+        const newTimeLeft = timeLeft - 1;
+        setTimeLeft(newTimeLeft);
+        // Notify parent component of time update
+        if (onTimeUpdate) {
+          onTimeUpdate(newTimeLeft);
+        }
       }, 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && !submitted && !disabled) {
       // Auto-submit when time runs out
+      console.log('⏰ Time up! Auto-submitting empty answer');
       onAnswer("");
       setSubmitted(true);
       setTimeUp(true);
@@ -52,7 +63,7 @@ export default function Flashcard({ question, onAnswer, disabled = false, onNext
         }, 1000); // Small delay to show the submitted state
       }
     }
-  }, [timeLeft, submitted, disabled, onAnswer, onTimeUp]);
+  }, [timeLeft, submitted, disabled, onAnswer, onTimeUp, onTimeUpdate]);
 
   // Reset timer when question changes
   useEffect(() => {
@@ -71,15 +82,20 @@ export default function Flashcard({ question, onAnswer, disabled = false, onNext
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               Question
             </h2>
-            <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
-              timeLeft > 10 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-              timeLeft > 5 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-              'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-            }`}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div 
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
+                timeLeft > 10 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                timeLeft > 5 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+              }`}
+              role="timer"
+              aria-live="assertive"
+              aria-label={`Time remaining: ${timeLeft} seconds`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="font-semibold">{timeLeft}s</span>
+              <span className="font-semibold" aria-hidden="true">{timeLeft}s</span>
             </div>
           </div>
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 rounded-lg p-6">
@@ -143,6 +159,7 @@ export default function Flashcard({ question, onAnswer, disabled = false, onNext
                     type="button"
                     onClick={onNextQuestion}
                     disabled={disabled}
+                    aria-label="Proceed to the next question"
                     className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed"
                   >
                     Next Question
@@ -152,6 +169,7 @@ export default function Flashcard({ question, onAnswer, disabled = false, onNext
                     type="button"
                     onClick={handleReset}
                     disabled={disabled}
+                    aria-label="Clear current answer and try again"
                     className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed"
                   >
                     New Answer

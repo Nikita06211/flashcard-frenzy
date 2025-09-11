@@ -25,31 +25,33 @@ app.prepare().then(() => {
 
   io.on('connection', (socket) => {
     console.log('🔌 User connected:', socket.id);
-    console.log('🔌 Socket transport:', socket.conn.transport.name);
-    console.log('🔌 Total connections:', io.engine.clientsCount);
-    console.log('🔌 Socket handshake:', socket.handshake);
     
 
     socket.on('join-user-room', (userId) => {
-      console.log(`👤 User ${socket.id} joined personal room: ${userId}`);
       socket.join(userId);
     });
 
 
     socket.on('join-match', ({ matchId, userId }) => {
-      console.log(`🎮 User ${userId} (${socket.id}) joined match: ${matchId}`);
+      console.log(`🎮 Player ${userId} joining match ${matchId}`);
       socket.join(matchId);
+      // Only emit to other players, not the sender
       socket.to(matchId).emit('player-joined', { userId, matchId });
     });
 
     socket.on('answer', ({ matchId, userId, answer, questionId }) => {
       console.log(`📝 Answer received from ${userId} in match ${matchId}: ${answer}`);
-      socket.to(matchId).emit('player-answered', { 
+      console.log(`📝 Answer data:`, { matchId, userId, answer, questionId });
+      console.log(`📝 Socket ID:`, socket.id);
+      
+      // Emit to all players in the match, including the sender
+      io.to(matchId).emit('player-answered', { 
         userId, 
         answer, 
         questionId,
         timestamp: Date.now() 
       });
+      console.log(`📝 Player-answered event sent to all players in match ${matchId}`);
     });
 
     socket.on('challenge-player', ({ challengerId, challengerName, targetId, matchId }) => {
@@ -94,17 +96,10 @@ app.prepare().then(() => {
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('🔌 User disconnected:', socket.id, 'Reason:', reason);
-      console.log('🔌 Remaining connections:', io.engine.clientsCount);
-    });
-
-    socket.on('error', (error) => {
-      console.error('❌ Socket error:', socket.id, error);
     });
 
     // Handle user leaving a match
     socket.on('leave-match', ({ matchId, userId }) => {
-      console.log(`🚪 User ${userId} leaving match ${matchId}`);
       socket.leave(matchId);
       // Emit to other players in the match
       socket.to(matchId).emit('player-left', { userId, matchId });
@@ -118,7 +113,5 @@ app.prepare().then(() => {
     })
     .listen(port, () => {
       console.log(`🚀 Server ready on http://${hostname}:${port}`);
-      console.log(`🔌 Socket.IO server ready on ws://${hostname}:${port}/api/socket`);
-      console.log(`🔌 Socket.IO transports: websocket, polling`);
     });
 });

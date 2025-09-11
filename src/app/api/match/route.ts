@@ -31,7 +31,6 @@ export async function DELETE(request: NextRequest) {
       }
     );
 
-    console.log(`🧹 Cleaned up ${result.modifiedCount} matches for player ${playerId}`);
 
     return NextResponse.json({
       success: true,
@@ -57,8 +56,6 @@ export async function POST(request: NextRequest) {
     
     const { player1Id, player2Id } = await request.json();
     
-    console.log('🔍 Creating match with players:', { player1Id, player2Id });
-    console.log('🔍 Match model schema:', Match.schema.paths.players);
 
     // Validate input
     if (!player1Id || !player2Id) {
