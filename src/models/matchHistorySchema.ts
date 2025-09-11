@@ -78,12 +78,7 @@ matchHistorySchema.index({ matchId: 1 });
 matchHistorySchema.index({ winner: 1 });
 
 // Compound index for finding matches where user is either player or opponent
-matchHistorySchema.index({ 
-  $or: [
-    { playerId: 1 }, 
-    { opponentId: 1 }
-  ]
-});
+matchHistorySchema.index({ playerId: 1, opponentId: 1 });
 
 // Clear the model cache to ensure new schema is used
 if (mongoose.models.MatchHistory) {

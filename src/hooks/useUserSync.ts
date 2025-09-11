@@ -11,14 +11,15 @@ export function useUserSync() {
   const loading = userData?.loading || false;
 
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && user.email) {
       console.log('🔄 useUserSync: User detected, syncing with database...', user.email);
       // Sync user with MongoDB when they log in
-      syncUserWithDatabase(user);
+      // Use email as id since Supabase user.id might not be available in this context
+      syncUserWithDatabase({ email: user.email, id: user.email });
     }
   }, [user, loading]);
 
-  const syncUserWithDatabase = async (user: any) => {
+  const syncUserWithDatabase = async (user: { email: string; id: string }) => {
     console.log('📡 useUserSync: Sending sync request for user:', user.email);
     try {
       const response = await fetch("/api/users/sync", {
@@ -27,7 +28,7 @@ export function useUserSync() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: user.id,
+          id: user.email,
           email: user.email,
         }),
       });

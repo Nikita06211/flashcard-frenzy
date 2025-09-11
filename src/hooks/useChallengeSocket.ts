@@ -40,7 +40,6 @@ export function useChallengeSocket(userId: string, userName: string) {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      maxReconnectionAttempts: 5,
       autoConnect: true
     });
 

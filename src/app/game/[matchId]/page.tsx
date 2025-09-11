@@ -72,11 +72,11 @@ function GamePageContent() {
     );
   }
 
-  // AuthGuard ensures user is authenticated, so we can safely use user.id
+  // AuthGuard ensures user is authenticated, so we can safely use user.email
   return (
     <Game 
       matchId={matchId} 
-      userId={user?.id || ''} 
+      userId={user?.email || ''} 
     />
   );
 }

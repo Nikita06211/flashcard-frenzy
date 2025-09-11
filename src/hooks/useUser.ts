@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 
 export function useUser() {
   const supabaseUser = useSupabaseUser();
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<{ user: { email?: string } } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,8 +36,8 @@ export function useUser() {
   }, []);
 
   // Use session data if available, otherwise fall back to supabaseUser
-  const user = session?.user || (supabaseUser as any)?.user || null;
-  const isLoading = loading || (supabaseUser as any)?.loading || false;
+  const user = session?.user || supabaseUser || null;
+  const isLoading = loading;
 
   console.log('useUser: Returning user:', user?.email, 'loading:', isLoading);
 

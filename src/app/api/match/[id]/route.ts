@@ -2,14 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import { Match, Game } from '@/models';
 
+interface GameDocument {
+  _id: string;
+  flashcards: Array<{
+    question: string;
+    answer: string;
+    answeredBy: string | null;
+    isCorrect: boolean | null;
+    answeredAt: Date | null;
+  }>;
+  scores: { player1: number; player2: number };
+  status: string;
+  startedAt: Date;
+  endedAt: Date | null;
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
     
-    const matchId = params.id;
+    const { id: matchId } = await params;
 
     // Validate match ID format
     if (!matchId || matchId.length !== 24) {
@@ -40,7 +55,7 @@ export async function GET(
     // Get associated game if it exists
     const game = await Game.findOne({ matchId })
       .populate('flashcards.answeredBy', 'email')
-      .lean();
+      .lean() as GameDocument | null;
 
     return NextResponse.json({
       success: true,
@@ -75,12 +90,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
     
-    const matchId = params.id;
+    const { id: matchId } = await params;
     const { status } = await request.json();
 
     // Validate match ID format

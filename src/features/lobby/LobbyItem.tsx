@@ -24,12 +24,12 @@ export default function LobbyItem({ player }: Props) {
   
   // Initialize unified socket
   const { sendChallenge, connected: challengeConnected } = useSocket(
-    user?.id || '', 
+    user?.email || '', 
     userName
   );
 
   // Debug connection status
-  console.log('LobbyItem: Challenge connection status:', challengeConnected, 'User ID:', user?.id, 'Target:', player.supabaseId);
+  console.log('LobbyItem: Challenge connection status:', challengeConnected, 'User ID:', user?.email, 'Target:', player.supabaseId);
 
   const challenge = async () => {
     if (!user) {
@@ -38,7 +38,7 @@ export default function LobbyItem({ player }: Props) {
       return;
     }
 
-    if (user.id === player.supabaseId) {
+    if (user.email === player.supabaseId) {
       setErrorMessage('You cannot challenge yourself');
       setChallengeStatus('error');
       return;
@@ -60,7 +60,7 @@ export default function LobbyItem({ player }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          player1Id: user.id, 
+          player1Id: user.email, 
           player2Id: player.supabaseId 
         }),
       });
@@ -144,13 +144,13 @@ export default function LobbyItem({ player }: Props) {
         <div className="space-y-2">
           <button
             onClick={challenge}
-            disabled={isChallenging || !user || user.id === player.supabaseId}
+            disabled={isChallenging || !user || user.email === player.supabaseId}
             className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
               isChallenging
                 ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 : !user
                 ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                : user.id === player.supabaseId
+                : user.email === player.supabaseId
                 ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white hover:shadow-lg transform hover:scale-[1.02]'
             }`}
@@ -162,7 +162,7 @@ export default function LobbyItem({ player }: Props) {
             </div>
           ) : !user ? (
             'Login to Challenge'
-          ) : user.id === player.supabaseId ? (
+          ) : user.email === player.supabaseId ? (
             'Yourself'
           ) : (
             'Challenge Player'

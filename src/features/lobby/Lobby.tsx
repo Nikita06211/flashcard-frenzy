@@ -21,20 +21,20 @@ export default function Lobby() {
   
   // Initialize unified socket for receiving challenges
   const { challenge, respondToChallenge, clearChallenge, connected: challengeConnected, cleanupMatches, forceReconnect } = useSocket(
-    user?.id || '', 
+    user?.email || '', 
     userName
   );
 
   // Debug connection status
-  console.log('Lobby: Challenge connection status:', challengeConnected, 'User ID:', user?.id);
+  console.log('Lobby: Challenge connection status:', challengeConnected, 'User ID:', user?.email);
 
   // Cleanup any existing matches when entering lobby
   useEffect(() => {
-    if (user?.id && cleanupMatches) {
+    if (user?.email && cleanupMatches) {
       console.log('🧹 Cleaning up matches when entering lobby');
       cleanupMatches();
     }
-  }, [user?.id, cleanupMatches]);
+  }, [user?.email, cleanupMatches]);
 
   const handleLogout = async () => {
     try {
@@ -43,7 +43,7 @@ export default function Lobby() {
         await fetch("/api/users/logout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: user.id }),
+          body: JSON.stringify({ userId: user.email }),
         });
       }
 

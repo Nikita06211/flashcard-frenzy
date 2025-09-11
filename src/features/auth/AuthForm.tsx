@@ -64,8 +64,8 @@ export default function AuthForm() {
         if (error) throw error;
         setSuccess("Check your email for a confirmation link!");
       }
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +179,7 @@ export default function AuthForm() {
               onClick={() => router.push('/lobby')}
               className="text-blue-600 dark:text-blue-400 hover:underline text-sm bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded"
             >
-              Click here if redirect doesn't work automatically
+              Click here if redirect doesn&apos;t work automatically
             </button>
           </div>
         )}

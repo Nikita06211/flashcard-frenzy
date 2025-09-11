@@ -5,7 +5,7 @@ import Flashcard from "./Flashcard";
 import Scoreboard from "./Scoreboard";
 import ScreenReaderAnnouncements from "@/components/ScreenReaderAnnouncements";
 import AlternativeAnnouncements from "@/components/AlternativeAnnouncements";
-import { MOCK_QUESTIONS, Question, TOTAL_QUESTIONS, MAX_SCORE } from "@/data/questions";
+import { MOCK_QUESTIONS, TOTAL_QUESTIONS } from "@/data/questions";
 import { useSocket } from "@/hooks/useSocket";
 import { useMatchHistory } from "@/hooks/useMatchHistory";
 import { MatchHistory } from "@/types/matchHistory";
@@ -30,10 +30,9 @@ export default function Game({ matchId, userId }: GameProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
-  const [playerNames, setPlayerNames] = useState<{ [userId: string]: string }>({});
   const [timeLeft, setTimeLeft] = useState(25);
   const [criticalAlert, setCriticalAlert] = useState("");
-  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
+  const [gameStartTime] = useState<number>(Date.now());
   const [playerAnswers, setPlayerAnswers] = useState<{ [questionId: string]: string }>({});
   const [opponentAnswers, setOpponentAnswers] = useState<{ [questionId: string]: string }>({});
   
@@ -99,7 +98,7 @@ export default function Game({ matchId, userId }: GameProps) {
       console.log('💾 Opponent answers:', opponentAnswers);
 
       // Create questions array with answers
-      const questions = MOCK_QUESTIONS.map((question, index) => {
+      const questions = MOCK_QUESTIONS.map((question) => {
         const questionId = question.id;
         const playerAnswer = playerAnswers[questionId] || '';
         const opponentAnswer = opponentAnswers[questionId] || '';
@@ -218,7 +217,7 @@ export default function Game({ matchId, userId }: GameProps) {
   useEffect(() => {
     if (!socket) return;
 
-    const handlePlayerJoined = ({ userId: joinedUserId, matchId: roomId }: any) => {
+    const handlePlayerJoined = ({ userId: joinedUserId }: { userId: string; matchId: string }) => {
       const playerName = `Player ${joinedUserId.slice(0, 8)}`;
       createAnnouncement(`${playerName} has joined the match. Game can now begin.`);
       
@@ -236,7 +235,7 @@ export default function Game({ matchId, userId }: GameProps) {
       });
     };
 
-    const handlePlayerAnswered = ({ userId: answerUserId, answer, questionId, timestamp }: any) => {
+    const handlePlayerAnswered = ({ userId: answerUserId, answer, questionId }: { userId: string; answer: string; questionId: string; timestamp: number }) => {
       console.log(`📝 Player ${answerUserId} answered: ${answer} for question ${questionId}`);
       console.log(`📝 Current question index: ${currentQuestionIndex}`);
       console.log(`📝 Current question:`, MOCK_QUESTIONS[currentQuestionIndex]);
@@ -260,7 +259,7 @@ export default function Game({ matchId, userId }: GameProps) {
         console.log(`📊 Updating scores for player ${answerUserId}`);
         console.log(`📊 Previous scores:`, prev);
         
-        const playerName = playerNames[answerUserId] || `Player ${answerUserId.slice(0, 8)}`;
+        const playerName = `Player ${answerUserId.slice(0, 8)}`;
         const currentPlayerScore = prev[answerUserId] || { score: 0, name: playerName, answers: {} };
         
         console.log(`📊 Current player score:`, currentPlayerScore);
@@ -322,7 +321,7 @@ export default function Game({ matchId, userId }: GameProps) {
       socket.off('player-joined', handlePlayerJoined);
       socket.off('player-answered', handlePlayerAnswered);
     };
-  }, [socket, currentQuestionIndex, playerNames]);
+  }, [socket, currentQuestionIndex, actualUserId]);
 
   const sendAnswer = (answer: string) => {
     if (socket && connected && !gameCompleted) {

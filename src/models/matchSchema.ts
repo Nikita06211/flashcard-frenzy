@@ -42,7 +42,7 @@ matchSchema.pre('save', function(this: IMatch, next: (error?: Error) => void) {
   if (this.players) {
     this.players = this.players.map(player => {
       if (typeof player === 'object' && player && 'toString' in player) {
-        return (player as any).toString();
+        return (player as { toString(): string }).toString();
       }
       return player;
     });
