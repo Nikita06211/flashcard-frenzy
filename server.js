@@ -20,7 +20,11 @@ app.prepare().then(() => {
     path: '/api/socket',
     cors: {
       origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.NEXT_PUBLIC_APP_URL || "https://flashcard-frenzy.vercel.app"]
+        ? [
+            process.env.NEXT_PUBLIC_APP_URL || "https://flashcard-frenzy.vercel.app",
+            "https://flashcard-frenzy.nikitabansal.xyz",
+            "https://*.nikitabansal.xyz"
+          ]
         : ["http://localhost:3000", "http://localhost:3001"],
       methods: ["GET", "POST"],
       credentials: true

@@ -34,7 +34,7 @@ export function useChallengeSocket(userId: string, userName: string) {
     
     const newSocket = io(socketUrl, {
       path: '/api/socket',
-      transports: ['websocket', 'polling'],
+      transports: process.env.NODE_ENV === 'production' ? ['polling', 'websocket'] : ['websocket', 'polling'],
       timeout: 20000,
       forceNew: true,
       reconnection: true,
@@ -59,7 +59,7 @@ export function useChallengeSocket(userId: string, userName: string) {
         console.log('🔄 Challenge socket trying fallback connection to same origin:', window.location.origin);
         const fallbackSocket = io(window.location.origin, {
           path: '/api/socket',
-          transports: ['websocket', 'polling'],
+          transports: ['polling'], // Use polling only for fallback
           timeout: 20000,
           forceNew: true,
           reconnection: true,

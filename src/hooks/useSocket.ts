@@ -54,7 +54,7 @@ export function useSocket(userId: string, userName: string) {
     
     const newSocket = io(socketUrl, {
       path: '/api/socket',
-      transports: ['websocket', 'polling'],
+      transports: process.env.NODE_ENV === 'production' ? ['polling', 'websocket'] : ['websocket', 'polling'],
       timeout: 20000,
       forceNew: true,
       reconnection: true,
@@ -79,7 +79,7 @@ export function useSocket(userId: string, userName: string) {
         console.log('🔄 Trying fallback connection to same origin:', window.location.origin);
         const fallbackSocket = io(window.location.origin, {
           path: '/api/socket',
-          transports: ['websocket', 'polling'],
+          transports: ['polling'], // Use polling only for fallback
           timeout: 20000,
           forceNew: true,
           reconnection: true,
@@ -98,6 +98,34 @@ export function useSocket(userId: string, userName: string) {
         
         fallbackSocket.on('connect_error', (fallbackError) => {
           console.error('❌ Fallback socket also failed:', fallbackError);
+          setConnected(false);
+        });
+      }
+      
+      // For production, if WebSocket fails, try polling-only connection
+      if (process.env.NODE_ENV === 'production' && socketUrl === window.location.origin) {
+        console.log('🔄 Production WebSocket failed, trying polling-only connection...');
+        const pollingSocket = io(socketUrl, {
+          path: '/api/socket',
+          transports: ['polling'],
+          timeout: 20000,
+          forceNew: true,
+          reconnection: true,
+          reconnectionAttempts: 3,
+          reconnectionDelay: 2000,
+          autoConnect: true
+        });
+        
+        pollingSocket.on('connect', () => {
+          console.log('✅ Polling-only socket connected successfully');
+          setConnected(true);
+          pollingSocket.emit('join-user-room', userId);
+          setSocket(pollingSocket);
+          socketRef.current = pollingSocket;
+        });
+        
+        pollingSocket.on('connect_error', (pollingError) => {
+          console.error('❌ Polling-only socket also failed:', pollingError);
           setConnected(false);
         });
       }
@@ -283,7 +311,7 @@ export function useSocket(userId: string, userName: string) {
     
     const newSocket = io(socketUrl, {
       path: '/api/socket',
-      transports: ['websocket', 'polling'],
+      transports: process.env.NODE_ENV === 'production' ? ['polling', 'websocket'] : ['websocket', 'polling'],
       timeout: 20000,
       forceNew: true,
       reconnection: true,
