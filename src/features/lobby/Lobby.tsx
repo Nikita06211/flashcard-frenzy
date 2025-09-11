@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useUserSync } from "@/hooks/useUserSync";
 import { useUser } from "@/hooks/useUser";
 import { supabase } from "@/lib/supabaseClient";
-import { useSocket } from "@/hooks/useSocket";
+import { useSmartSocket } from "@/hooks/useSmartSocket";
 import ChallengeNotification from "@/components/ChallengeNotification";
 import LobbyList from "./LobbyList";
 
@@ -19,14 +19,14 @@ export default function Lobby() {
   const user = userData?.user || null;
   const userName = user?.email?.split('@')[0] || 'Player';
   
-  // Initialize unified socket for receiving challenges
-  const { challenge, respondToChallenge, clearChallenge, connected: challengeConnected, cleanupMatches, forceReconnect } = useSocket(
+  // Initialize smart socket that automatically chooses between WebSocket and polling
+  const { challenge, respondToChallenge, clearChallenge, connected: challengeConnected, cleanupMatches, forceReconnect, connectionType } = useSmartSocket(
     user?.email || '', 
     userName
   );
 
   // Debug connection status
-  console.log('Lobby: Challenge connection status:', challengeConnected, 'User ID:', user?.email);
+  console.log('Lobby: Challenge connection status:', challengeConnected, 'Connection type:', connectionType, 'User ID:', user?.email);
 
   // Cleanup any existing matches when entering lobby
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function Lobby() {
             <div className="flex items-center justify-center sm:justify-start space-x-2">
               <div className={`w-3 h-3 rounded-full ${challengeConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {challengeConnected ? 'Connected' : 'Disconnected'}
+                {challengeConnected ? `Connected (${connectionType})` : 'Disconnected'}
               </span>
             </div>
             

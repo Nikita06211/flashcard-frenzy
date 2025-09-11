@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useUser } from "@/hooks/useUser";
-import { useSocket } from "@/hooks/useSocket";
+import { useSmartSocket } from "@/hooks/useSmartSocket";
 
 interface Player {
   _id: string;
@@ -22,14 +22,14 @@ export default function LobbyItem({ player }: Props) {
   const { user } = useUser();
   const userName = user?.email?.split('@')[0] || 'Player';
   
-  // Initialize unified socket
-  const { sendChallenge, connected: challengeConnected } = useSocket(
+  // Initialize smart socket
+  const { sendChallenge, connected: challengeConnected, connectionType } = useSmartSocket(
     user?.email || '', 
     userName
   );
 
   // Debug connection status
-  console.log('LobbyItem: Challenge connection status:', challengeConnected, 'User ID:', user?.email, 'Target:', player.supabaseId);
+  console.log('LobbyItem: Challenge connection status:', challengeConnected, 'Connection type:', connectionType, 'User ID:', user?.email, 'Target:', player.supabaseId);
 
   const challenge = async () => {
     if (!user) {
