@@ -14,7 +14,7 @@ export function useUserSync() {
     if (user && !loading && user.email) {
       console.log('🔄 useUserSync: User detected, syncing with database...', user.email);
       // Sync user with MongoDB when they log in
-      // Use email as id since Supabase user.id might not be available in this context
+      // Use email as both id and email for consistency with the current system
       syncUserWithDatabase({ email: user.email, id: user.email });
     }
   }, [user, loading]);
@@ -35,8 +35,11 @@ export function useUserSync() {
 
       if (!response.ok) {
         console.error("❌ useUserSync: Failed to sync user with database");
+        const errorData = await response.json();
+        console.error("❌ useUserSync: Error details:", errorData);
       } else {
-        console.log('✅ useUserSync: User synced successfully');
+        const data = await response.json();
+        console.log('✅ useUserSync: User synced successfully:', data);
       }
     } catch (error) {
       console.error("❌ useUserSync: Error syncing user:", error);

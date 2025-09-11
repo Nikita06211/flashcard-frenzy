@@ -26,21 +26,38 @@ export async function POST(request: NextRequest) {
       
       console.log('📊 User model schema fields:', Object.keys(User.schema.paths));
       
-      // Find existing user or create new one
-      const user = await User.findOneAndUpdate(
-        { supabaseId: id },
-        { 
-          supabaseId: id,
-          email: email.toLowerCase().trim(),
-          isOnline: true,
-          lastActive: new Date()
-        },
-        { 
-          upsert: true, 
-          new: true, 
-          runValidators: true 
+      // Find existing user by email first, then by supabaseId
+      let user = await User.findOne({ email: email.toLowerCase().trim() });
+      
+      if (user) {
+        // Update existing user
+        user.supabaseId = id;
+        user.isOnline = true;
+        user.lastActive = new Date();
+        await user.save();
+        console.log('👤 Updated existing user by email:', user);
+      } else {
+        // Try to find by supabaseId
+        user = await User.findOne({ supabaseId: id });
+        
+        if (user) {
+          // Update existing user
+          user.email = email.toLowerCase().trim();
+          user.isOnline = true;
+          user.lastActive = new Date();
+          await user.save();
+          console.log('👤 Updated existing user by supabaseId:', user);
+        } else {
+          // Create new user
+          user = await User.create({
+            supabaseId: id,
+            email: email.toLowerCase().trim(),
+            isOnline: true,
+            lastActive: new Date()
+          });
+          console.log('👤 Created new user:', user);
         }
-      );
+      }
       
       console.log('👤 User document created/updated:', user);
 

@@ -62,48 +62,56 @@ export default function Lobby() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-2">
+          {/* Mobile-first responsive header */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 space-y-4 sm:space-y-0">
+            {/* Connection status - top on mobile, left on desktop */}
+            <div className="flex items-center justify-center sm:justify-start space-x-2">
               <div className={`w-3 h-3 rounded-full ${challengeConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {challengeConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            
+            {/* Title - centered */}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Flashcard Frenzy Lobby
             </h1>
-            <div className="flex items-center space-x-2">
+            
+            {/* Action buttons - responsive layout */}
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
               <button
                 onClick={() => router.push('/history')}
-                className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg transition-colors duration-200 text-sm"
+                className="flex items-center space-x-1 sm:space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-2 sm:px-3 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm"
                 aria-label="View match history"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                <span>History</span>
+                <span className="hidden sm:inline">History</span>
               </button>
               <button
                 onClick={forceReconnect}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors duration-200 text-sm"
+                className="flex items-center space-x-1 sm:space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-3 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>Reconnect</span>
+                <span className="hidden sm:inline">Reconnect</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                className="flex items-center space-x-1 sm:space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-2 sm:px-4 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span>Logout</span>
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 text-lg">
+          
+          {/* Welcome message - responsive text */}
+          <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg px-4">
             Welcome, {user?.email}! Find online players and start your flashcard battle!
           </p>
         </div>

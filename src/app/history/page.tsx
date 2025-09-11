@@ -108,23 +108,28 @@ export default function MatchHistoryPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-between items-center mb-4">
+        {/* Header - responsive layout */}
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 space-y-4 sm:space-y-0">
+            {/* Back button - top on mobile, left on desktop */}
             <button
               onClick={() => router.push('/lobby')}
               aria-label="Return to lobby"
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2"
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm sm:text-base"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               <span>Back to Lobby</span>
             </button>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            
+            {/* Title - centered */}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Match History
             </h1>
-            <div></div> {/* Spacer for centering */}
+            
+            {/* Spacer for desktop layout */}
+            <div className="hidden sm:block w-32"></div>
           </div>
         </div>
 
@@ -157,15 +162,15 @@ export default function MatchHistoryPage() {
                 </div>
               )}
 
-              {/* Match History */}
-              <div className="mb-6 flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {/* Match History - responsive header */}
+              <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white text-center sm:text-left">
                   Recent Matches ({matches.length})
                 </h2>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap justify-center sm:justify-end gap-2">
                   <button
                     onClick={handleTestSave}
-                    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm"
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg transition-all duration-200 text-xs sm:text-sm"
                   >
                     Test Save
                   </button>
@@ -173,9 +178,9 @@ export default function MatchHistoryPage() {
                     <button
                       onClick={handleClearHistory}
                       aria-label="Clear all match history"
-                      className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2"
+                      className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg transition-all duration-200 flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                       <span>Clear History</span>
@@ -184,29 +189,29 @@ export default function MatchHistoryPage() {
                 </div>
               </div>
 
-              {/* Match Cards */}
+              {/* Match Cards - responsive grid */}
               {matches.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-8 sm:py-12">
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                    <svg className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
                     No matches yet
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 px-4">
                     Start playing games to see your match history here!
                   </p>
                   <button
                     onClick={() => router.push('/lobby')}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-2 sm:py-3 px-6 sm:px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
                     Go to Lobby
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" role="list" aria-label="Match history">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6" role="list" aria-label="Match history">
                   {matches.map((match) => (
                     <div key={match.id} role="listitem">
                       <MatchHistoryCard match={match} currentPlayerId={userId} />

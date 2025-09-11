@@ -31,7 +31,6 @@ export async function DELETE(request: NextRequest) {
       }
     );
 
-
     return NextResponse.json({
       success: true,
       message: `Cleaned up ${result.modifiedCount} matches`,
@@ -56,6 +55,7 @@ export async function POST(request: NextRequest) {
     
     const { player1Id, player2Id } = await request.json();
     
+    console.log('🔍 Match creation request:', { player1Id, player2Id });
 
     // Validate input
     if (!player1Id || !player2Id) {
@@ -79,12 +79,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if both players exist and are online
+    console.log('🔍 Looking for players:', { player1Id, player2Id });
+    
+    const allPlayers = await User.find({
+      supabaseId: { $in: [player1Id, player2Id] }
+    });
+    console.log('📊 All matching players found:', allPlayers.length, allPlayers.map(p => ({ 
+      supabaseId: p.supabaseId, 
+      email: p.email, 
+      isOnline: p.isOnline 
+    })));
+    
     const players = await User.find({
       supabaseId: { $in: [player1Id, player2Id] },
       isOnline: true
     });
+    console.log('✅ Online players found:', players.length, players.map(p => ({ 
+      supabaseId: p.supabaseId, 
+      email: p.email, 
+      isOnline: p.isOnline 
+    })));
 
     if (players.length !== 2) {
+      console.log('❌ Not enough online players found. Expected 2, got:', players.length);
       return NextResponse.json(
         { 
           success: false, 
@@ -117,6 +134,8 @@ export async function POST(request: NextRequest) {
     });
 
     await match.save();
+
+    console.log('✅ Match created successfully:', match._id);
 
     return NextResponse.json({
       success: true,

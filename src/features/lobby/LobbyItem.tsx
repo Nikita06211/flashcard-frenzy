@@ -55,7 +55,73 @@ export default function LobbyItem({ player }: Props) {
     setErrorMessage('');
 
     try {
-      // First create a match
+      // First test if API is reachable
+      console.log('🧪 Testing API connectivity...');
+      try {
+        const testResponse = await fetch("/api/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ test: true }),
+        });
+        const testData = await testResponse.json();
+        console.log('✅ API test successful:', testData);
+      } catch (testError) {
+        console.error('❌ API test failed:', testError);
+        setErrorMessage('API server is not reachable. Please check if the server is running.');
+        setChallengeStatus('error');
+        return;
+      }
+
+      // Test match endpoint specifically
+      console.log('🧪 Testing match endpoint...');
+      try {
+        const matchTestResponse = await fetch("/api/match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            player1Id: "test1", 
+            player2Id: "test2" 
+          }),
+        });
+        console.log('📡 Match endpoint test status:', matchTestResponse.status);
+        const matchTestData = await matchTestResponse.json();
+        console.log('📡 Match endpoint test response:', matchTestData);
+      } catch (matchTestError) {
+        console.error('❌ Match endpoint test failed:', matchTestError);
+      }
+
+      // First ensure both players are synced and online
+      console.log('🔄 Ensuring both players are synced before creating match...');
+      
+      // Sync current user
+      await fetch("/api/users/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user.email,
+          email: user.email,
+        }),
+      });
+      
+      // Sync target player
+      await fetch("/api/users/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: player.supabaseId,
+          email: player.email,
+        }),
+      });
+
+      // Wait a moment for sync to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Now create a match
+      console.log('🚀 Creating match with:', { 
+        player1Id: user.email, 
+        player2Id: player.supabaseId 
+      });
+      
       const response = await fetch("/api/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -65,12 +131,15 @@ export default function LobbyItem({ player }: Props) {
         }),
       });
 
+      console.log('📡 Match creation response status:', response.status);
       const data = await response.json();
+      console.log('📡 Match creation response data:', data);
 
       if (data.success) {
-        // Send challenge via WebSocket
+        // Send challenge via WebSocket - use email for WebSocket routing
         const matchId = data.match._id;
-        sendChallenge(player.supabaseId, matchId);
+        console.log('🎯 Sending challenge to email:', player.email, 'instead of supabaseId:', player.supabaseId);
+        sendChallenge(player.email, matchId);
         
         setChallengeStatus('success');
         setErrorMessage('Challenge sent! Waiting for response...');
@@ -116,7 +185,7 @@ export default function LobbyItem({ player }: Props) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 dark:border-gray-700 w-full">
       {/* Player Info */}
       <div className="flex items-center space-x-4 mb-4">
         {/* Avatar */}
@@ -129,11 +198,11 @@ export default function LobbyItem({ player }: Props) {
         </div>
 
         {/* Player Details */}
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">
             {player.email}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
             Last active: {formatLastActive(player.lastActive)}
           </p>
         </div>
@@ -145,7 +214,7 @@ export default function LobbyItem({ player }: Props) {
           <button
             onClick={challenge}
             disabled={isChallenging || !user || user.email === player.supabaseId}
-            className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+            className={`w-full py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold transition-all duration-200 text-sm sm:text-base ${
               isChallenging
                 ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 : !user
@@ -173,16 +242,16 @@ export default function LobbyItem({ player }: Props) {
 
         {/* Status Messages */}
         {challengeStatus === 'success' && (
-          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <p className="text-green-600 dark:text-green-400 text-sm font-medium">
+          <div className="p-2 sm:p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-green-600 dark:text-green-400 text-xs sm:text-sm font-medium">
               ✓ Challenge sent successfully!
             </p>
           </div>
         )}
 
         {challengeStatus === 'error' && errorMessage && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-red-600 dark:text-red-400 text-sm font-medium">
+          <div className="p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-red-600 dark:text-red-400 text-xs sm:text-sm font-medium">
               {errorMessage}
             </p>
           </div>

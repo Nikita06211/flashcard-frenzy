@@ -11,7 +11,10 @@ const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
 app.prepare().then(() => {
-  const httpServer = createServer(handler);
+  const httpServer = createServer((req, res) => {
+    // Handle all Next.js routes including API routes
+    handler(req, res);
+  });
   
   const io = new Server(httpServer, {
     path: '/api/socket',
@@ -56,12 +59,32 @@ app.prepare().then(() => {
 
     socket.on('challenge-player', ({ challengerId, challengerName, targetId, matchId }) => {
       console.log(`⚔️ Challenge from ${challengerName} (${challengerId}) to ${targetId}`);
-      socket.to(targetId).emit('challenge-received', {
-        challengerId,
-        challengerName,
-        matchId,
-        timestamp: Date.now()
-      });
+      console.log(`🔍 Looking for user room: ${targetId}`);
+      console.log(`🔍 Available rooms:`, Array.from(socket.rooms));
+      
+      // Check if target user is in a room
+      const targetSocket = io.sockets.sockets.get(targetId);
+      if (targetSocket) {
+        console.log(`✅ Target user found in room: ${targetId}`);
+        socket.to(targetId).emit('challenge-received', {
+          challengerId,
+          challengerName,
+          matchId,
+          timestamp: Date.now()
+        });
+        console.log(`📤 Challenge event sent to ${targetId}`);
+      } else {
+        console.log(`❌ Target user not found in room: ${targetId}`);
+        // Try to emit to all connected sockets and let them filter
+        io.emit('challenge-received', {
+          challengerId,
+          challengerName,
+          matchId,
+          targetId,
+          timestamp: Date.now()
+        });
+        console.log(`📤 Challenge event broadcast to all users`);
+      }
     });
 
     socket.on('challenge-response', ({ challengerId, targetId, accepted, matchId }) => {

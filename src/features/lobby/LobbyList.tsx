@@ -93,20 +93,20 @@ export default function LobbyList() {
 
   return (
     <div className="space-y-6">
-      {/* Header with refresh button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+      {/* Header with refresh button - responsive layout */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <div className="text-center sm:text-left">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
             Online Players
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
             {players.length} player{players.length !== 1 ? 's' : ''} online
           </p>
         </div>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+          className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors duration-200 text-sm sm:text-base"
         >
           <svg 
             className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
@@ -134,7 +134,7 @@ export default function LobbyList() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
           {players.map((player) => (
             <LobbyItem key={player._id} player={player} />
           ))}

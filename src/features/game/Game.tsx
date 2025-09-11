@@ -392,8 +392,9 @@ export default function Game({ matchId, userId }: GameProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-between items-center mb-4">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 space-y-4 sm:space-y-0">
+            {/* Exit button - top on mobile, left on desktop */}
             <button
               onClick={() => {
                 leaveMatch(matchId);
@@ -401,39 +402,46 @@ export default function Game({ matchId, userId }: GameProps) {
                 window.location.href = '/lobby';
               }}
               aria-label="Exit current match and return to lobby"
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2"
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm sm:text-base"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
               <span>Exit Match</span>
             </button>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            
+            {/* Title - centered */}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Flashcard Frenzy
           </h1>
-            <div></div> {/* Spacer for centering */}
+            
+            {/* Spacer for desktop layout */}
+            <div className="hidden sm:block w-24"></div>
           </div>
-          <div className="flex items-center justify-center space-x-4 mb-4" role="status" aria-live="polite">
+          {/* Connection status and match info - responsive layout */}
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 mb-4" role="status" aria-live="polite">
+            <div className="flex items-center space-x-2">
             <div 
               className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
               aria-label={`Connection status: ${connected ? 'Connected' : 'Disconnected'}`}
             ></div>
-            <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
               {connected ? 'Connected' : 'Disconnected'}
             </span>
-            <span className="text-gray-400" aria-hidden="true">•</span>
-            <span className="text-gray-600 dark:text-gray-400">Match: {matchId}</span>
+            </div>
+            <span className="text-gray-400 hidden sm:inline" aria-hidden="true">•</span>
+            <span className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Match: {matchId.slice(0, 8)}...</span>
           </div>
           
-          {/* Game Progress */}
+          {/* Game Progress - responsive sizing */}
           {!gameCompleted && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg max-w-md mx-auto" role="progressbar" aria-valuenow={currentQuestionIndex + 1} aria-valuemin={1} aria-valuemax={TOTAL_QUESTIONS} aria-label={`Question ${currentQuestionIndex + 1} of ${TOTAL_QUESTIONS}`}>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow-lg max-w-sm sm:max-w-md mx-auto" role="progressbar" aria-valuenow={currentQuestionIndex + 1} aria-valuemin={1} aria-valuemax={TOTAL_QUESTIONS} aria-label={`Question ${currentQuestionIndex + 1} of ${TOTAL_QUESTIONS}`}>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
                   Question {currentQuestionIndex + 1} of {TOTAL_QUESTIONS}
                 </span>
-                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                  {MOCK_QUESTIONS[currentQuestionIndex]?.points} points
+                <span className="text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400">
+                  {MOCK_QUESTIONS[currentQuestionIndex]?.points} pts
                 </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2" aria-hidden="true">
@@ -446,10 +454,10 @@ export default function Game({ matchId, userId }: GameProps) {
           )}
         </div>
 
-        {/* Game Content */}
-        <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Game Content - responsive grid layout */}
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Main Game Area */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {!gameCompleted ? (
               <Flashcard 
                 question={MOCK_QUESTIONS[currentQuestionIndex]?.question || "Loading..."}
@@ -462,23 +470,22 @@ export default function Game({ matchId, userId }: GameProps) {
                 onTimeUpdate={setTimeLeft}
               />
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
-                <div className="mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 text-center">
+                <div className="mb-4 sm:mb-6">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                     </svg>
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Quiz Completed!</h2>
-                  <p className="text-gray-600 dark:text-gray-400">Final scores are in</p>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Quiz Completed!</h2>
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Final scores are in</p>
                 </div>
                 
-                {/* Final Scores */}
-                  <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Final Results</h3>
+                {/* Final Scores - responsive layout */}
+                <div className="mb-4 sm:mb-6">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Final Results</h3>
                   
-                  
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {Object.entries(scores)
                       .sort((a, b) => b[1].score - a[1].score) // Sort by score (highest first)
                       .map(([playerId, playerScore], index) => {
@@ -488,24 +495,24 @@ export default function Game({ matchId, userId }: GameProps) {
                         console.log('🎯 Rendering player:', playerId, 'isCurrentUser:', isCurrentUser, 'isWinner:', isWinner);
                         
                         return (
-                          <div key={playerId} className={`relative overflow-hidden rounded-xl p-6 ${
+                          <div key={playerId} className={`relative overflow-hidden rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 ${
                             isWinner 
-                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white shadow-lg transform scale-105' 
+                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white shadow-lg transform scale-[1.02] sm:scale-105' 
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
                           }`}>
                             {/* Winner badge */}
                             {isWinner && (
-                              <div className="absolute top-2 right-2">
-                                <span className="bg-white text-yellow-600 px-2 py-1 rounded-full text-xs font-bold">
+                              <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
+                                <span className="bg-white text-yellow-600 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold">
                                   WINNER
                                 </span>
                               </div>
                             )}
                             
                             <div className="flex justify-between items-center">
-                              <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2 sm:space-x-4">
                                 {/* Rank indicator */}
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold ${
                                   isWinner 
                                     ? 'bg-white text-yellow-600' 
                                     : index === 1 
@@ -516,28 +523,28 @@ export default function Game({ matchId, userId }: GameProps) {
                                 </div>
                                 
                                 {/* Player info */}
-                                <div>
-                                  <div className="flex items-center space-x-2">
-                                    <span className="font-semibold text-lg">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                                    <span className="font-semibold text-sm sm:text-base">
                                       {isCurrentUser ? 'You:' : 'Opponent:'}
                                     </span>
-                                    <span className="text-sm opacity-80">
+                                    <span className="text-xs sm:text-sm opacity-80 truncate">
                                       {playerScore.name}
                                     </span>
                                   </div>
-                                  <div className="text-sm opacity-75 mt-1">
-                                    {Object.values(playerScore.answers).filter(Boolean).length} correct answers
+                                  <div className="text-xs sm:text-sm opacity-75 mt-1">
+                                    {Object.values(playerScore.answers).filter(Boolean).length} correct
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Score */}
                               <div className="text-right">
-                                <div className="text-3xl font-bold">
+                                <div className="text-xl sm:text-2xl lg:text-3xl font-bold">
                                   {playerScore.score}
                                 </div>
-                                <div className="text-sm opacity-75">
-                                  points
+                                <div className="text-xs sm:text-sm opacity-75">
+                                  pts
                                 </div>
                               </div>
                             </div>
@@ -547,17 +554,18 @@ export default function Game({ matchId, userId }: GameProps) {
                   </div>
                 </div>
                 
-                <div className="flex space-x-4 justify-center">
+                {/* Action buttons - responsive layout */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center">
                 <button
                   onClick={resetGame}
                   aria-label="Start a new game with the same players"
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 lg:px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl text-sm sm:text-base"
                 >
                   Play Again
                 </button>
                 <button
                   onClick={saveMatchHistory}
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 lg:px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl text-sm sm:text-base"
                 >
                   Save Match
                 </button>
@@ -568,7 +576,7 @@ export default function Game({ matchId, userId }: GameProps) {
                       window.location.href = '/lobby';
                     }}
                     aria-label="Leave current match and return to lobby"
-                    className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                    className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 lg:px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
                     Back to Lobby
                   </button>
@@ -577,8 +585,8 @@ export default function Game({ matchId, userId }: GameProps) {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Sidebar - responsive positioning */}
+          <div className="lg:space-y-6 space-y-4">
             <Scoreboard scores={scores} />
           </div>
         </div>

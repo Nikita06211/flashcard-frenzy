@@ -123,8 +123,22 @@ export function useSocket(userId: string, userName: string) {
 
 
     // Challenge events
-    newSocket.on('challenge-received', (data: ChallengeData) => {
+    newSocket.on('challenge-received', (data: ChallengeData & { targetId?: string }) => {
       console.log('⚔️ Challenge received:', data);
+      console.log('⚔️ Current user ID:', userId);
+      console.log('⚔️ Target ID in challenge:', data.targetId);
+      
+      // If targetId is specified, only show challenge to the target user
+      if (data.targetId && data.targetId !== userId) {
+        console.log('⚔️ Challenge not for this user, ignoring');
+        return;
+      }
+      
+      // If no targetId specified, show to all users (fallback)
+      if (!data.targetId) {
+        console.log('⚔️ Challenge broadcast, showing to all users');
+      }
+      
       setChallenge(data);
     });
 
