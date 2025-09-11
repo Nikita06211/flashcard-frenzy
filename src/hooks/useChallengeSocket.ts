@@ -25,10 +25,10 @@ export function useChallengeSocket(userId: string, userName: string) {
 
     console.log('🔌 Initializing challenge socket connection for user:', userId);
     
-    // Try to connect to the same origin first, then fallback to localhost:3001
+    // In development, socket server runs on port 3001, in production it runs on same port as Next.js
     const socketUrl = process.env.NODE_ENV === 'production' 
       ? window.location.origin 
-      : window.location.origin; // Use same origin in development too
+      : 'http://localhost:3001';
     
     console.log('🔌 Challenge socket attempting to connect to:', socketUrl);
     
@@ -53,6 +53,48 @@ export function useChallengeSocket(userId: string, userName: string) {
     newSocket.on('connect_error', (error) => {
       console.error('❌ Challenge socket connection error:', error);
       setConnected(false);
+      
+      // If connection fails to localhost:3001, try same origin as fallback
+      if (socketUrl === 'http://localhost:3001' && window.location.origin !== 'http://localhost:3001') {
+        console.log('🔄 Challenge socket trying fallback connection to same origin:', window.location.origin);
+        const fallbackSocket = io(window.location.origin, {
+          path: '/api/socket',
+          transports: ['websocket', 'polling'],
+          timeout: 20000,
+          forceNew: true,
+          reconnection: true,
+          reconnectionAttempts: 3,
+          reconnectionDelay: 1000,
+          autoConnect: true
+        });
+        
+        fallbackSocket.on('connect', () => {
+          console.log('✅ Challenge fallback socket connected successfully');
+          setConnected(true);
+          fallbackSocket.emit('join-user-room', userId);
+          setSocket(fallbackSocket);
+        });
+        
+        fallbackSocket.on('connect_error', (fallbackError) => {
+          console.error('❌ Challenge fallback socket also failed:', fallbackError);
+          setConnected(false);
+        });
+        
+        // Set up event listeners for fallback socket
+        fallbackSocket.on('challenge-received', (data: ChallengeData) => {
+          console.log('⚔️ Challenge received:', data);
+          setChallenge(data);
+        });
+
+        fallbackSocket.on('challenge-accepted', (data: { targetId: string; matchId: string }) => {
+          console.log('✅ Challenge accepted, joining match:', data.matchId);
+          router.push(`/game/${data.matchId}`);
+        });
+
+        fallbackSocket.on('challenge-declined', (data: { targetId: string }) => {
+          console.log('❌ Challenge declined by:', data.targetId);
+        });
+      }
     });
 
     newSocket.on('disconnect', (reason) => {

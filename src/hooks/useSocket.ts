@@ -45,10 +45,10 @@ export function useSocket(userId: string, userName: string) {
 
     console.log('🔌 Initializing unified socket connection for user:', userId);
     
-    // Try to connect to the same origin first, then fallback to localhost:3001
+    // In development, socket server runs on port 3001, in production it runs on same port as Next.js
     const socketUrl = process.env.NODE_ENV === 'production' 
       ? window.location.origin 
-      : window.location.origin; // Use same origin in development too
+      : 'http://localhost:3001';
     
     console.log('🔌 Attempting to connect to socket URL:', socketUrl);
     
@@ -74,10 +74,10 @@ export function useSocket(userId: string, userName: string) {
       console.error('❌ Attempted URL:', socketUrl);
       setConnected(false);
       
-      // If connection fails to same origin, try localhost:3001 as fallback
-      if (socketUrl === window.location.origin && window.location.origin !== 'http://localhost:3001') {
-        console.log('🔄 Trying fallback connection to localhost:3001');
-        const fallbackSocket = io('http://localhost:3001', {
+      // If connection fails to localhost:3001, try same origin as fallback
+      if (socketUrl === 'http://localhost:3001' && window.location.origin !== 'http://localhost:3001') {
+        console.log('🔄 Trying fallback connection to same origin:', window.location.origin);
+        const fallbackSocket = io(window.location.origin, {
           path: '/api/socket',
           transports: ['websocket', 'polling'],
           timeout: 20000,
@@ -89,9 +89,11 @@ export function useSocket(userId: string, userName: string) {
         });
         
         fallbackSocket.on('connect', () => {
+          console.log('✅ Fallback socket connected successfully');
           setConnected(true);
           fallbackSocket.emit('join-user-room', userId);
           setSocket(fallbackSocket);
+          socketRef.current = fallbackSocket;
         });
         
         fallbackSocket.on('connect_error', (fallbackError) => {
@@ -277,7 +279,7 @@ export function useSocket(userId: string, userName: string) {
     // Trigger a new connection by updating the effect
     const socketUrl = process.env.NODE_ENV === 'production' 
       ? window.location.origin 
-      : window.location.origin;
+      : 'http://localhost:3001';
     
     const newSocket = io(socketUrl, {
       path: '/api/socket',

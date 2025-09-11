@@ -4,8 +4,8 @@ const next = require('next');
 const { Server } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
-const port = process.env.PORT || 3001;
+const hostname = process.env.HOSTNAME || 'localhost';
+const port = process.env.PORT || (dev ? 3001 : 3000);
 
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
@@ -19,15 +19,23 @@ app.prepare().then(() => {
   const io = new Server(httpServer, {
     path: '/api/socket',
     cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
+      origin: process.env.NODE_ENV === 'production' 
+        ? [process.env.NEXT_PUBLIC_APP_URL || "https://flashcard-frenzy.vercel.app"]
+        : ["http://localhost:3000", "http://localhost:3001"],
+      methods: ["GET", "POST"],
+      credentials: true
     },
     transports: ['websocket', 'polling'],
-    allowEIO3: true
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    connectTimeout: 45000
   });
 
   io.on('connection', (socket) => {
     console.log('🔌 User connected:', socket.id);
+    console.log('🔌 Socket transport:', socket.conn.transport.name);
+    console.log('🔌 Total connected sockets:', io.sockets.sockets.size);
     
 
     socket.on('join-user-room', (userId) => {
@@ -125,6 +133,8 @@ app.prepare().then(() => {
     });
 
     socket.on('disconnect', (reason) => {
+      console.log('🔌 User disconnected:', socket.id, 'Reason:', reason);
+      console.log('🔌 Remaining connected sockets:', io.sockets.sockets.size);
     });
 
     // Handle user leaving a match
