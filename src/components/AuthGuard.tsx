@@ -32,7 +32,8 @@ export default function AuthGuard({ children, redirectTo = "/auth" }: AuthGuardP
           setIsChecking(false);
           setHasCheckedSession(true);
         } else {
-          console.log('AuthGuard: No session found');
+          console.log('AuthGuard: No session found, waiting for useUser hook...');
+          // Don't immediately redirect, let useUser hook handle it
           setHasCheckedSession(true);
         }
       } catch (error) {
@@ -41,8 +42,8 @@ export default function AuthGuard({ children, redirectTo = "/auth" }: AuthGuardP
       }
     };
 
-    // Give some time for the session to be restored
-    const timer = setTimeout(checkSession, 1500);
+    // Give more time for the session to be restored
+    const timer = setTimeout(checkSession, 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -52,8 +53,25 @@ export default function AuthGuard({ children, redirectTo = "/auth" }: AuthGuardP
         console.log('AuthGuard: User found via useUser hook, allowing access');
         setIsChecking(false);
       } else {
-        console.log('AuthGuard: No user found, redirecting to auth');
-        router.push(redirectTo);
+        // Give a bit more time for session restoration
+        console.log('AuthGuard: No user found, checking session one more time...');
+        const finalCheck = setTimeout(async () => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              console.log('AuthGuard: Session found in final check, allowing access');
+              setIsChecking(false);
+            } else {
+              console.log('AuthGuard: No session in final check, redirecting to auth');
+              router.push(redirectTo);
+            }
+          } catch (error) {
+            console.error('AuthGuard: Error in final session check:', error);
+            router.push(redirectTo);
+          }
+        }, 1000);
+        
+        return () => clearTimeout(finalCheck);
       }
     }
   }, [user, loading, router, redirectTo, hasCheckedSession]);

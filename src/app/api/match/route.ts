@@ -1,12 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import { Match, User } from '@/models';
+import { User } from '@/models';
+import { Match } from '@/models/matchSchema';
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectDB();
+    
+    const { playerId } = await request.json();
+    
+    if (!playerId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Player ID is required' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Find and update all active matches for this player
+    const result = await Match.updateMany(
+      { 
+        players: playerId,
+        status: { $in: ['pending', 'active'] }
+      },
+      { 
+        status: 'finished',
+        updatedAt: new Date()
+      }
+    );
+
+    console.log(`🧹 Cleaned up ${result.modifiedCount} matches for player ${playerId}`);
+
+    return NextResponse.json({
+      success: true,
+      message: `Cleaned up ${result.modifiedCount} matches`,
+      modifiedCount: result.modifiedCount
+    });
+
+  } catch (error) {
+    console.error('Error cleaning up matches:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to clean up matches' 
+      },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
     
     const { player1Id, player2Id } = await request.json();
+    
+    console.log('🔍 Creating match with players:', { player1Id, player2Id });
+    console.log('🔍 Match model schema:', Match.schema.paths.players);
 
     // Validate input
     if (!player1Id || !player2Id) {
@@ -31,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     // Check if both players exist and are online
     const players = await User.find({
-      _id: { $in: [player1Id, player2Id] },
+      supabaseId: { $in: [player1Id, player2Id] },
       isOnline: true
     });
 
@@ -61,16 +113,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new match
+    // Create new match with player references
     const match = new Match({
       players: [player1Id, player2Id],
       status: 'pending'
     });
 
     await match.save();
-
-    // Populate player details for response
-    await match.populate('players', 'email isOnline lastActive');
 
     return NextResponse.json({
       success: true,

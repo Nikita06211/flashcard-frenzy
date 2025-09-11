@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useUser } from "@/hooks/useUser";
+import { useSocket } from "@/hooks/useSocket";
 
 interface Player {
   _id: string;
@@ -19,6 +20,16 @@ export default function LobbyItem({ player }: Props) {
   const [challengeStatus, setChallengeStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const { user } = useUser();
+  const userName = user?.email?.split('@')[0] || 'Player';
+  
+  // Initialize unified socket
+  const { sendChallenge, connected: challengeConnected } = useSocket(
+    user?.id || '', 
+    userName
+  );
+
+  // Debug connection status
+  console.log('LobbyItem: Challenge connection status:', challengeConnected, 'User ID:', user?.id, 'Target:', player.supabaseId);
 
   const challenge = async () => {
     if (!user) {
@@ -33,11 +44,18 @@ export default function LobbyItem({ player }: Props) {
       return;
     }
 
+    if (!challengeConnected) {
+      setErrorMessage('Connection not ready. Please wait...');
+      setChallengeStatus('error');
+      return;
+    }
+
     setIsChallenging(true);
     setChallengeStatus('idle');
     setErrorMessage('');
 
     try {
+      // First create a match
       const response = await fetch("/api/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,9 +68,19 @@ export default function LobbyItem({ player }: Props) {
       const data = await response.json();
 
       if (data.success) {
+        // Send challenge via WebSocket
+        const matchId = data.match._id;
+        sendChallenge(player.supabaseId, matchId);
+        
         setChallengeStatus('success');
-        // You could redirect to the match or show a success message
-        console.log('Match created:', data.match);
+        setErrorMessage('Challenge sent! Waiting for response...');
+        
+        // Auto-redirect after a short delay (in case they accept)
+        setTimeout(() => {
+          if (challengeStatus === 'success') {
+            window.location.href = `/game/${matchId}`;
+          }
+        }, 2000);
       } else {
         setErrorMessage(data.error || 'Failed to create match');
         setChallengeStatus('error');
@@ -113,19 +141,20 @@ export default function LobbyItem({ player }: Props) {
 
       {/* Challenge Button */}
       <div className="space-y-3">
-        <button
-          onClick={challenge}
-          disabled={isChallenging || !user || user.id === player.supabaseId}
-          className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
-            isChallenging
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : !user
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : user.id === player.supabaseId
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white hover:shadow-lg transform hover:scale-[1.02]'
-          }`}
-        >
+        <div className="space-y-2">
+          <button
+            onClick={challenge}
+            disabled={isChallenging || !user || user.id === player.supabaseId}
+            className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+              isChallenging
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : !user
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : user.id === player.supabaseId
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white hover:shadow-lg transform hover:scale-[1.02]'
+            }`}
+          >
           {isChallenging ? (
             <div className="flex items-center justify-center space-x-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -138,7 +167,9 @@ export default function LobbyItem({ player }: Props) {
           ) : (
             'Challenge Player'
           )}
-        </button>
+          </button>
+          
+        </div>
 
         {/* Status Messages */}
         {challengeStatus === 'success' && (
