@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Flashcard from "./Flashcard";
 import Scoreboard from "./Scoreboard";
 import ScreenReaderAnnouncements from "@/components/ScreenReaderAnnouncements";
 import AlternativeAnnouncements from "@/components/AlternativeAnnouncements";
 import { MOCK_QUESTIONS, Question, TOTAL_QUESTIONS, MAX_SCORE } from "@/data/questions";
 import { useSocket } from "@/hooks/useSocket";
+import { useMatchHistory } from "@/hooks/useMatchHistory";
+import { MatchHistory } from "@/types/matchHistory";
 
 interface GameProps {
   matchId: string;
@@ -31,6 +33,26 @@ export default function Game({ matchId, userId }: GameProps) {
   const [playerNames, setPlayerNames] = useState<{ [userId: string]: string }>({});
   const [timeLeft, setTimeLeft] = useState(25);
   const [criticalAlert, setCriticalAlert] = useState("");
+  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
+  const [playerAnswers, setPlayerAnswers] = useState<{ [questionId: string]: string }>({});
+  const [opponentAnswers, setOpponentAnswers] = useState<{ [questionId: string]: string }>({});
+  
+  // Get the actual userId from localStorage to ensure consistency
+  const [actualUserId, setActualUserId] = useState<string>(userId);
+  
+  useEffect(() => {
+    // Ensure we're using the same userId as the history page
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId && storedUserId !== userId) {
+      console.log('🔄 Game: Using stored userId instead of prop userId');
+      console.log('🔄 Game: Prop userId:', userId);
+      console.log('🔄 Game: Stored userId:', storedUserId);
+      setActualUserId(storedUserId);
+    }
+  }, [userId]);
+  
+  // Match history hook - use the actual userId
+  const { saveMatch } = useMatchHistory(actualUserId);
   
   // Function to create accessible announcements
   const createAnnouncement = (message: string, priority: 'polite' | 'assertive' = 'polite') => {
@@ -40,6 +62,95 @@ export default function Game({ matchId, userId }: GameProps) {
       setAnnouncement(message);
     }
   };
+
+  // Function to save match history
+  const saveMatchHistory = useCallback(async () => {
+    try {
+      console.log('💾 Attempting to save match history...');
+      console.log('💾 Current scores:', scores);
+      console.log('💾 Current user ID:', actualUserId);
+      console.log('💾 Game completed:', gameCompleted);
+      console.log('💾 Winner:', winner);
+      
+      const playerEntries = Object.entries(scores);
+      console.log('💾 Player entries:', playerEntries);
+      
+      if (playerEntries.length < 2) {
+        console.log('💾 Not enough players to save match history:', playerEntries.length);
+        return; // Need at least 2 players
+      }
+
+      const currentPlayer = scores[actualUserId];
+      const opponentEntry = playerEntries.find(([id]) => id !== actualUserId);
+      
+      console.log('💾 Current player:', currentPlayer);
+      console.log('💾 Opponent entry:', opponentEntry);
+      
+      if (!currentPlayer || !opponentEntry) {
+        console.log('💾 Missing player data - currentPlayer:', !!currentPlayer, 'opponentEntry:', !!opponentEntry);
+        return;
+      }
+
+      const [opponentId, opponentData] = opponentEntry;
+      const matchDuration = Math.floor((Date.now() - gameStartTime) / 1000);
+      
+      console.log('💾 Match duration:', matchDuration, 'seconds');
+      console.log('💾 Player answers:', playerAnswers);
+      console.log('💾 Opponent answers:', opponentAnswers);
+
+      // Create questions array with answers
+      const questions = MOCK_QUESTIONS.map((question, index) => {
+        const questionId = question.id;
+        const playerAnswer = playerAnswers[questionId] || '';
+        const opponentAnswer = opponentAnswers[questionId] || '';
+        const playerCorrect = currentPlayer.answers[questionId] || false;
+        const opponentCorrect = opponentData.answers[questionId] || false;
+
+        return {
+          questionId,
+          question: question.question,
+          playerAnswer,
+          opponentAnswer,
+          correctAnswer: question.answer,
+          playerCorrect,
+          opponentCorrect,
+          points: question.points,
+        };
+      });
+
+      // Calculate correct answers properly
+      const playerCorrectAnswers = Object.values(currentPlayer.answers).filter(Boolean).length;
+      const opponentCorrectAnswers = Object.values(opponentData.answers).filter(Boolean).length;
+      
+      console.log('💾 Player correct answers:', playerCorrectAnswers);
+      console.log('💾 Opponent correct answers:', opponentCorrectAnswers);
+
+      const matchData: Omit<MatchHistory, 'id' | 'timestamp'> = {
+        matchId,
+        playerId: actualUserId,
+        opponentId,
+        playerName: currentPlayer.name,
+        opponentName: opponentData.name,
+        playerScore: currentPlayer.score,
+        opponentScore: opponentData.score,
+        winner: winner || '',
+        totalQuestions: MOCK_QUESTIONS.length,
+        playerCorrectAnswers,
+        opponentCorrectAnswers,
+        matchDuration,
+        questions,
+      };
+
+      console.log('💾 Match data to save:', matchData);
+      const result = await saveMatch(matchData);
+      console.log('✅ Match history saved successfully:', result);
+      
+      // Show success message
+      createAnnouncement("Match history saved successfully!", 'assertive');
+    } catch (error) {
+      console.error('❌ Error saving match history:', error);
+    }
+  }, [scores, actualUserId, gameCompleted, winner, gameStartTime, playerAnswers, opponentAnswers, matchId, saveMatch]);
   
   // Effect to handle critical time warnings
   useEffect(() => {
@@ -47,11 +158,27 @@ export default function Game({ matchId, userId }: GameProps) {
       createAnnouncement(`Warning! Only ${timeLeft} seconds remaining!`, 'assertive');
     }
   }, [timeLeft, gameCompleted]);
+
+  // Effect to save match history when game is completed and data is ready
+  useEffect(() => {
+    if (gameCompleted && winner && Object.keys(scores).length >= 2) {
+      console.log('🎯 Game completed with all data ready, saving match history...');
+      console.log('🎯 Scores:', scores);
+      console.log('🎯 Winner:', winner);
+      
+      // Add a small delay to ensure all state updates are complete
+      const saveTimer = setTimeout(() => {
+        saveMatchHistory();
+      }, 500);
+      
+      return () => clearTimeout(saveTimer);
+    }
+  }, [gameCompleted, winner, scores, saveMatchHistory]);
   
   // Use unified socket
   const { socket, connected, joinMatch, sendAnswer: socketSendAnswer, leaveMatch, cleanupMatches } = useSocket(
-    userId, 
-    `Player ${userId.slice(0, 8)}`
+    actualUserId, 
+    `Player ${actualUserId.slice(0, 8)}`
   );
 
   useEffect(() => {
@@ -60,12 +187,12 @@ export default function Game({ matchId, userId }: GameProps) {
       
       // Initialize current user's score if not already present
       setScores(prev => {
-        if (prev[userId]) return prev; // Already initialized
+        if (prev[actualUserId]) return prev; // Already initialized
         
-        const currentUserName = `Player ${userId.slice(0, 8)}`;
+        const currentUserName = `Player ${actualUserId.slice(0, 8)}`;
         return {
           ...prev,
-          [userId]: {
+          [actualUserId]: {
             score: 0,
             name: currentUserName,
             answers: {}
@@ -76,7 +203,7 @@ export default function Game({ matchId, userId }: GameProps) {
       // Announce game start
       createAnnouncement(`Welcome to Flashcard Frenzy! Question 1 of ${TOTAL_QUESTIONS}. You have 25 seconds to answer each question.`);
     }
-  }, [socket, connected, matchId, joinMatch, userId]);
+  }, [socket, connected, matchId, joinMatch, actualUserId]);
 
   // Cleanup when component unmounts or user leaves
   useEffect(() => {
@@ -118,6 +245,14 @@ export default function Game({ matchId, userId }: GameProps) {
       const isCorrect = currentQuestion && answer.toLowerCase().trim() === currentQuestion.answer.toLowerCase().trim();
       
       console.log(`📝 Answer correct: ${isCorrect}`);
+      
+      // Track opponent's answer if it's not the current user
+      if (answerUserId !== actualUserId) {
+        setOpponentAnswers(prev => ({
+          ...prev,
+          [questionId]: answer
+        }));
+      }
       
 
       // Update scores with proper logic
@@ -197,7 +332,14 @@ export default function Game({ matchId, userId }: GameProps) {
       console.log(`📤 Question: ${question.question}`);
       console.log(`📤 Correct answer: ${question.answer}`);
       console.log(`📤 Points: ${question.points}`);
-      console.log(`📤 Current user: ${userId}`);
+      console.log(`📤 Current user: ${actualUserId}`);
+      
+      // Track player's answer
+      setPlayerAnswers(prev => ({
+        ...prev,
+        [questionId]: answer
+      }));
+      
       socketSendAnswer(matchId, answer, questionId);
     } else {
       console.warn('⚠️ Cannot send answer - socket not connected or game completed');
@@ -216,13 +358,19 @@ export default function Game({ matchId, userId }: GameProps) {
       setGameCompleted(true);
       determineWinner();
       createAnnouncement("Quiz completed! Final scores are in. Check the results below.", 'assertive');
+      
+      // Save match history after a longer delay to ensure all data is ready
+      setTimeout(() => {
+        console.log('⏰ Game completed, attempting to save match history...');
+        saveMatchHistory();
+      }, 2000);
     }
   };
 
   const determineWinner = () => {
     const playerEntries = Object.entries(scores);
     console.log('🏆 Determining winner from scores:', scores);
-    console.log('🏆 Current user ID:', userId);
+    console.log('🏆 Current user ID:', actualUserId);
     
     if (playerEntries.length > 0) {
       const sortedPlayers = playerEntries.sort((a, b) => b[1].score - a[1].score);
@@ -335,7 +483,7 @@ export default function Game({ matchId, userId }: GameProps) {
                     {Object.entries(scores)
                       .sort((a, b) => b[1].score - a[1].score) // Sort by score (highest first)
                       .map(([playerId, playerScore], index) => {
-                        const isCurrentUser = playerId === userId;
+                        const isCurrentUser = playerId === actualUserId;
                         const isWinner = winner === playerId;
                         
                         console.log('🎯 Rendering player:', playerId, 'isCurrentUser:', isCurrentUser, 'isWinner:', isWinner);
@@ -408,6 +556,12 @@ export default function Game({ matchId, userId }: GameProps) {
                 >
                   Play Again
                 </button>
+                <button
+                  onClick={saveMatchHistory}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                >
+                  Save Match
+                </button>
                   <button
                     onClick={() => {
                       leaveMatch(matchId);
@@ -445,3 +599,4 @@ export default function Game({ matchId, userId }: GameProps) {
     </div>
   );
 }
+ 
