@@ -127,6 +127,8 @@ export function useSocket(userId: string, userName: string) {
       console.log('⚔️ Challenge received:', data);
       console.log('⚔️ Current user ID:', userId);
       console.log('⚔️ Target ID in challenge:', data.targetId);
+      console.log('⚔️ Socket connected:', newSocket.connected);
+      console.log('⚔️ Socket ID:', newSocket.id);
       
       // If targetId is specified, only show challenge to the target user
       if (data.targetId && data.targetId !== userId) {
@@ -139,6 +141,7 @@ export function useSocket(userId: string, userName: string) {
         console.log('⚔️ Challenge broadcast, showing to all users');
       }
       
+      console.log('⚔️ Setting challenge state...');
       setChallenge(data);
     });
 

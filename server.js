@@ -31,7 +31,10 @@ app.prepare().then(() => {
     
 
     socket.on('join-user-room', (userId) => {
+      console.log(`👤 User ${userId} joining their personal room`);
+      console.log(`👤 Socket ID: ${socket.id}`);
       socket.join(userId);
+      console.log(`👤 User ${userId} joined room. Socket rooms:`, Array.from(socket.rooms));
     });
 
 
@@ -61,6 +64,7 @@ app.prepare().then(() => {
       console.log(`⚔️ Challenge from ${challengerName} (${challengerId}) to ${targetId}`);
       console.log(`🔍 Looking for user room: ${targetId}`);
       console.log(`🔍 Available rooms:`, Array.from(socket.rooms));
+      console.log(`🔍 All connected sockets:`, io.sockets.sockets.size);
       
       // Check if target user is in a room
       const targetSocket = io.sockets.sockets.get(targetId);
@@ -75,6 +79,8 @@ app.prepare().then(() => {
         console.log(`📤 Challenge event sent to ${targetId}`);
       } else {
         console.log(`❌ Target user not found in room: ${targetId}`);
+        console.log(`🔍 Available socket IDs:`, Array.from(io.sockets.sockets.keys()));
+        
         // Try to emit to all connected sockets and let them filter
         io.emit('challenge-received', {
           challengerId,
